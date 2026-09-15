@@ -18,6 +18,14 @@ function get(root: HTMLElement, testid: string): HTMLElement {
   return el;
 }
 
+function getButton(root: HTMLElement, testid: string): HTMLButtonElement {
+  const el = get(root, testid);
+  if (!(el instanceof HTMLButtonElement)) {
+    throw new Error(`[data-testid="${testid}"] no es un botón`);
+  }
+  return el;
+}
+
 const MOCK_RESULT = { limb: "rightHand", color: "blue" } as const;
 
 let storage: Map<string, string>;
@@ -33,6 +41,20 @@ function installStorage(): void {
         storage.set(key, String(value));
       },
       clear: () => storage.clear(),
+    }),
+  });
+}
+
+/** matchMedia simulado para las pruebas de prefers-reduced-motion. */
+function installMatchMedia(matches: boolean): void {
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    writable: true,
+    value: (query: string) => ({
+      matches,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
     }),
   });
 }
@@ -53,7 +75,8 @@ describe("initApp", () => {
     }
   });
 
-  it("al girar muestra la extremidad y el color traducidos con el fondo del color", () => {
+  it("al girar: decide el resultado de una, anima y termina mostrándolo", () => {
+    vi.useFakeTimers();
     const root = makeRoot();
     const mockSpinner: Spinner = {
       spin: vi.fn(() => MOCK_RESULT),
@@ -62,13 +85,51 @@ describe("initApp", () => {
 
     get(root, "spin").click();
     expect(mockSpinner.spin).toHaveBeenCalledTimes(1);
+    expect(getButton(root, "spin").disabled).toBe(true);
+
+    vi.advanceTimersByTime(6000);
+
+    expect(mockSpinner.spin).toHaveBeenCalledTimes(1);
     expect(get(root, "result-limb").textContent).toBe("mano derecha");
     expect(get(root, "result-color").textContent).toBe("azul");
     // #0057b8 → rgb(0, 87, 184)
     expect(get(root, "result").style.backgroundColor).toBe("rgb(0, 87, 184)");
+    expect(getButton(root, "spin").disabled).toBe(false);
+  });
+
+  it("durante la animación nunca se muestra el resultado final antes de tiempo", () => {
+    vi.useFakeTimers();
+    const root = makeRoot();
+    initApp(root, { spinner: { spin: vi.fn(() => MOCK_RESULT) } });
+
+    get(root, "spin").click();
+    // la secuencia recorre las 16 casillas y solo la última es "azul"
+    for (let i = 0; i < 3000; i += 100) {
+      vi.advanceTimersByTime(100);
+      if (i < 1900) {
+        // todavía de sobra dentro de la animación: no puede ser el final
+        expect(getButton(root, "spin").disabled).toBe(true);
+      }
+    }
+    vi.advanceTimersByTime(3000);
+    expect(get(root, "result-color").textContent).toBe("azul");
+  });
+
+  it("con prefers-reduced-motion no anima: resultado inmediato y botón activo", () => {
+    installMatchMedia(true);
+    const root = makeRoot();
+    const mockSpinner: Spinner = { spin: vi.fn(() => MOCK_RESULT) };
+    initApp(root, { spinner: mockSpinner });
+
+    get(root, "spin").click();
+    expect(mockSpinner.spin).toHaveBeenCalledTimes(1);
+    expect(get(root, "result-limb").textContent).toBe("mano derecha");
+    expect(get(root, "result-color").textContent).toBe("azul");
+    expect(getButton(root, "spin").disabled).toBe(false);
   });
 
   it("cambiar el idioma a eu traduce botón y resultado", () => {
+    vi.useFakeTimers();
     const root = makeRoot();
     const mockSpinner: Spinner = {
       spin: vi.fn((): SpinResult => ({ limb: "leftFoot", color: "green" })),
@@ -78,6 +139,7 @@ describe("initApp", () => {
     get(root, "lang-eu").click();
     expect(get(root, "spin").textContent).toBe(DICTS.eu.spin);
     get(root, "spin").click();
+    vi.advanceTimersByTime(6000);
     expect(get(root, "result-limb").textContent).toBe("ezkerreko oina");
     expect(get(root, "result-color").textContent).toBe("berdea");
   });
@@ -150,9 +212,11 @@ describe("initApp", () => {
   });
 
   it("usa el spinner real por defecto (produce resultados del dominio)", () => {
+    vi.useFakeTimers();
     const root = makeRoot();
     initApp(root, { spinner: createSpinner(() => 0) });
     get(root, "spin").click();
+    vi.advanceTimersByTime(6000);
     expect(get(root, "result-limb").textContent).toBe(
       DICTS.es.limbs.leftHand,
     );

@@ -1,7 +1,9 @@
 import { Capacitor } from "@capacitor/core";
 import { TextToSpeech } from "@capacitor-community/text-to-speech";
 import {
+  COLORS,
   createSpinner,
+  LIMBS,
   type RandomFn,
   type SpinResult,
   type Spinner,
@@ -27,6 +29,16 @@ const LANG_STORAGE_KEY = "twister.lang";
 const SECONDS_STORAGE_KEY = "twister.autoSeconds";
 const AUTO_INTERVALS = [10, 15, 20, 30] as const;
 const DEFAULT_SECONDS = 15;
+
+/**
+ * Animación de la ruleta: la secuencia recorre las casillas del tapete
+ * (16 = 4 extremidades × 4 colores) y frena con easing cúbico sobre la
+ * real. La DURACIÓN crece con el número de pasos pero se acota (~2,7 s):
+ * delay(60 ms) → delay(375 ms) por paso.
+ */
+const SPIN_STEPS_EXTRA_MAX = 5;
+const SPIN_MIN_DELAY_MS = 55;
+const SPIN_MAX_DELAY_MS = 320;
 
 interface StorageLike {
   getItem(key: string): string | null;
@@ -92,6 +104,8 @@ export function initApp(root: HTMLElement, options: AppOptions = {}): void {
   let lang: LangCode = initialLang;
   let lastResult: SpinResult | null = null;
   let timer: ReturnType<typeof setInterval> | null = null;
+  let spinTimer: ReturnType<typeof setTimeout> | null = null;
+  let animando = false;
 
   root.replaceChildren();
   const els = buildDom(root);
@@ -138,9 +152,67 @@ export function initApp(root: HTMLElement, options: AppOptions = {}): void {
   }
 
   function doSpin(): void {
+    if (animando) return; // un giro mientras la ruleta corre: ignorado
     lastResult = spinner.spin();
-    renderResult();
-    if (els.voiceToggle.checked) speak();
+    if (prefersReducedMotion()) {
+      renderResult();
+      if (els.voiceToggle.checked) speak();
+      return;
+    }
+    animateSpin(lastResult);
+  }
+
+  /** El usuario pide menos movimiento: resultado directo, sin animación. */
+  function prefersReducedMotion(): boolean {
+    return (
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
+  }
+
+  /**
+   * Efecto "ruleta que se frena": recorre las casillas del tapete en orden
+   * (rápido al principio, cada vez más lento con easing cúbico) y clava la
+   * última en el resultado REAL, que ya se decidió en doSpin(). La voz y el
+   * resultado final solo al terminar: la secuencia intermedia es cosmética.
+   */
+  function animateSpin(final: SpinResult): void {
+    const limbCount = LIMBS.length;
+    const colorCount = COLORS.length;
+    const total = limbCount * colorCount;
+    const finalIndex =
+      LIMBS.indexOf(final.limb) * colorCount + COLORS.indexOf(final.color);
+    const steps = total + Math.floor(Math.random() * SPIN_STEPS_EXTRA_MAX);
+
+    animando = true;
+    els.spinButton.disabled = true;
+
+    let paso = 0;
+    const tick = (): void => {
+      if (paso >= steps) {
+        spinTimer = null;
+        animando = false;
+        els.spinButton.disabled = false;
+        renderResult();
+        if (els.voiceToggle.checked) speak();
+        return;
+      }
+      const idx = (((finalIndex - steps + paso) % total) + total) % total;
+      const limb = LIMBS[idx % limbCount];
+      const color = COLORS[Math.floor(idx / limbCount) % colorCount];
+      setText(els.resultLimb, dict.limbs[limb]);
+      setText(els.resultColor, dict.colors[color]);
+      els.result.style.backgroundColor = COLOR_HEX[color];
+      els.result.classList.toggle("dark-text", DARK_TEXT.has(color));
+      paso++;
+      const progreso = paso / steps;
+      spinTimer = setTimeout(
+        tick,
+        SPIN_MIN_DELAY_MS +
+          SPIN_MAX_DELAY_MS * progreso * progreso * progreso,
+      );
+    };
+    tick();
   }
 
   function speak(): void {
@@ -261,7 +333,15 @@ export function initApp(root: HTMLElement, options: AppOptions = {}): void {
     });
   }
 
-  window.addEventListener("pagehide", stopTimer);
+  window.addEventListener("pagehide", () => {
+    stopTimer();
+    if (spinTimer !== null) {
+      clearTimeout(spinTimer);
+      spinTimer = null;
+      animando = false;
+      els.spinButton.disabled = false;
+    }
+  });
 
   applyDict();
 }

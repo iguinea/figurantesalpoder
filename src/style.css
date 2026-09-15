@@ -126,6 +126,12 @@ body {
   transform: scale(0.98);
 }
 
+.spin-button[disabled] {
+  opacity: 0.6;
+  cursor: default;
+  transform: none;
+}
+
 .option-row {
   display: flex;
   align-items: center;
