@@ -71,10 +71,12 @@ beforeEach(() => {
 let mockAudio: {
   createOscillator: ReturnType<typeof vi.fn>;
   createGain: ReturnType<typeof vi.fn>;
+  close: ReturnType<typeof vi.fn>;
+  contextosCreados: number;
 };
 
-/** AudioContext simulado para contar los tics disparados. */
-function installAudioMock(): void {
+/** AudioContext simulado (con estado configurable) para contar los tics. */
+function installAudioMock(estadoInicial: string): void {
   class MockOsc {
     type = "triangle";
     frequency = { value: 0 };
@@ -92,18 +94,24 @@ function installAudioMock(): void {
   mockAudio = {
     createOscillator: vi.fn(() => new MockOsc()),
     createGain: vi.fn(() => new MockGain()),
+    close: vi.fn(),
+    contextosCreados: 0,
   };
   Object.defineProperty(window, "AudioContext", {
     configurable: true,
     writable: true,
-    value: vi.fn(() => ({
-      state: "running",
-      currentTime: 0,
-      destination: {},
-      resume: vi.fn().mockResolvedValue(undefined),
-      createOscillator: mockAudio.createOscillator,
-      createGain: mockAudio.createGain,
-    })),
+    value: vi.fn(() => {
+      mockAudio.contextosCreados++;
+      return {
+        state: mockAudio.contextosCreados === 1 ? estadoInicial : "running",
+        currentTime: 0,
+        destination: {},
+        resume: vi.fn().mockResolvedValue(undefined),
+        close: mockAudio.close,
+        createOscillator: mockAudio.createOscillator,
+        createGain: mockAudio.createGain,
+      };
+    }),
   });
 }
 
@@ -235,7 +243,7 @@ describe("initApp", () => {
 
   it("girar dispara tics a través de Web Audio con un AudioContext simulado", () => {
     vi.useFakeTimers();
-    installAudioMock();
+    installAudioMock("running");
     const root = makeRoot();
     const mockSpinner: Spinner = { spin: vi.fn(() => MOCK_RESULT) };
     initApp(root, { spinner: mockSpinner });
@@ -245,6 +253,22 @@ describe("initApp", () => {
 
     expect(mockAudio.createOscillator).toHaveBeenCalled();
     expect(mockAudio.createOscillator.mock.calls.length).toBeGreaterThanOrEqual(10);
+  });
+
+  it("tras volver de segundo plano (contexto suspendido) se recrea y los tics vuelven", () => {
+    vi.useFakeTimers();
+    installAudioMock("suspended");
+    const root = makeRoot();
+    const mockSpinner: Spinner = { spin: vi.fn(() => MOCK_RESULT) };
+    initApp(root, { spinner: mockSpinner });
+
+    getButton(root, "spin").click();
+    vi.advanceTimersByTime(6000);
+
+    // el contexto zombi se cerró y se creó uno nuevo para poder seguir sonando
+    expect(mockAudio.close).toHaveBeenCalled();
+    expect(mockAudio.contextosCreados).toBeGreaterThanOrEqual(2);
+    expect(mockAudio.createOscillator).toHaveBeenCalled();
   });
 
   it("cambiar el idioma a eu traduce botón y resultado", () => {
