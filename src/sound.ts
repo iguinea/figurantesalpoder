@@ -6,11 +6,28 @@
 
 let contexto: AudioContext | null = null;
 
+// Al volver de segundo plano iOS deja el contexto suspendido y el resume()
+// puede fallar fuera de un gesto: recrearlo es lo fiable.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible" || !contexto) return;
+  if (contexto.state !== "running") contexto.resume().catch(() => {});
+});
+
 function asegurarContexto(): AudioContext | null {
   const Ctor =
     window.AudioContext ??
     (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!Ctor) return null;
+  // Contexto zombi (p. ej. tras volver de segundo plano en iOS): cerrarlo y
+  // crear uno nuevo — el nuevo, creado dentro del gesto del botón, arranca.
+  if (contexto && contexto.state !== "running") {
+    try {
+      contexto.close().catch(() => {});
+    } catch {
+      // nada que cerrar
+    }
+    contexto = null;
+  }
   if (!contexto) contexto = new Ctor();
   // Políticas de autoplay (iOS/Chrome): el contexto se reanuda con el
   // gesto de usuario del botón GIRAR.
