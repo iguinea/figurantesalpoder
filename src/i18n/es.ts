@@ -18,6 +18,7 @@ export const es: Dictionary = {
   phraseTemplate: "{limb}, {color}",
   autoSeconds: "Auto-giro (segundos)",
   voiceLabel: "Voz",
+  tickLabel: "Sonido de la ruleta",
   autoLabel: "Auto-giro",
   autoOn: "Auto-giro activado",
   autoOff: "Auto-giro desactivado",

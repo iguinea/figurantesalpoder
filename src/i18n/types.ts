@@ -11,6 +11,8 @@ export interface Dictionary {
   readonly autoSeconds: string;
   /** Etiqueta del interruptor de voz. */
   readonly voiceLabel: string;
+  /** Etiqueta del interruptor del tic de la ruleta. */
+  readonly tickLabel: string;
   /** Etiqueta del interruptor de auto-giro. */
   readonly autoLabel: string;
   /** Aviso cuando el auto-giro se activa. */
