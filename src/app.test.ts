@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { initApp } from "./app.js";
 import { createSpinner, type SpinResult, type Spinner } from "./engine/spinner.js";
 import { DICTS, getDict } from "./i18n/index.js";
+import { resetSoundForTests } from "./sound.js";
 
 function makeRoot(): HTMLElement {
   const root = document.createElement("div");
@@ -61,6 +62,7 @@ function installMatchMedia(matches: boolean): void {
 
 beforeEach(() => {
   installStorage();
+  resetSoundForTests();
   document.body.replaceChildren();
   vi.useRealTimers();
   delete (window as { AudioContext?: unknown }).AudioContext;

@@ -6,6 +6,16 @@
 
 let contexto: AudioContext | null = null;
 
+/** Hook para tests: descarta el contexto singleton entre escenarios. */
+export function resetSoundForTests(): void {
+  try {
+    contexto?.close()?.catch(() => {});
+  } catch {
+    // nada que cerrar
+  }
+  contexto = null;
+}
+
 // Al volver de segundo plano iOS deja el contexto suspendido y el resume()
 // puede fallar fuera de un gesto: recrearlo es lo fiable.
 document.addEventListener("visibilitychange", () => {
