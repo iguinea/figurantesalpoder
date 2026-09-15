@@ -19,8 +19,12 @@ export interface Dictionary {
   readonly autoOff: string;
   /** Aviso cuando el dispositivo no tiene voz para el idioma elegido. */
   readonly voiceUnavailable: string;
-  /** Regla oficial mostrada junto al resultado. */
+  /** Regla oficial mostrada en los ajustes. */
   readonly colorFullHint: string;
+  /** Título de la sección de ajustes. */
+  readonly settingsTitle: string;
+  /** aria-label del botón que cierra los ajustes. */
+  readonly settingsClose: string;
   /** Plantilla del anuncio del turno; debe contener "{limb}" y "{color}". */
   readonly phraseTemplate: string;
   readonly limbs: Readonly<Record<Limb, string>>;

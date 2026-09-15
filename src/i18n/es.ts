@@ -25,5 +25,7 @@ export const es: Dictionary = {
     "No hay voz de este idioma en este dispositivo: solo texto.",
   colorFullHint:
     "Si los seis círculos de ese color ya están ocupados, se vuelve a girar (regla oficial).",
+  settingsTitle: "Ajustes",
+  settingsClose: "Cerrar ajustes",
   voiceLang: "es-ES",
 };

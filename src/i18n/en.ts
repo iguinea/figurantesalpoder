@@ -24,5 +24,7 @@ export const en: Dictionary = {
   voiceUnavailable: "No voice for this language on this device: text only.",
   colorFullHint:
     "If all six circles of that color are occupied, spin again (official rule).",
+  settingsTitle: "Settings",
+  settingsClose: "Close settings",
   voiceLang: "en-US",
 };

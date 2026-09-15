@@ -75,6 +75,27 @@ describe("initApp", () => {
     }
   });
 
+  it("la pantalla principal oculta los ajustes: panel cerrado al arrancar", () => {
+    const root = makeRoot();
+    initApp(root);
+    expect(getButton(root, "settings-button")).toBeInstanceOf(HTMLButtonElement);
+    expect(get(root, "settings-panel").hidden).toBe(true);
+  });
+
+  it("el engranaje abre los ajustes y el botón de cerrar los cierra", () => {
+    const root = makeRoot();
+    initApp(root);
+
+    getButton(root, "settings-button").click();
+    expect(get(root, "settings-panel").hidden).toBe(false);
+    expect(get(root, "settings-title").textContent).toBe(DICTS.es.settingsTitle);
+    // los controles viven dentro del panel
+    expect(get(root, "settings-panel").contains(get(root, "auto-toggle"))).toBe(true);
+
+    getButton(root, "settings-close").click();
+    expect(get(root, "settings-panel").hidden).toBe(true);
+  });
+
   it("al girar: decide el resultado de una, anima y termina mostrándolo", () => {
     vi.useFakeTimers();
     const root = makeRoot();

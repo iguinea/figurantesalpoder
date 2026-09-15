@@ -64,6 +64,86 @@ body {
   font-weight: 700;
 }
 
+/* --- cabecera: logo + engranaje --- */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 44px;
+}
+
+.app-logo {
+  display: block;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
+}
+
+.gear-button {
+  background: transparent;
+  border: 1px solid #3a3f46;
+  border-radius: 12px;
+  color: var(--fg);
+  padding: 9px;
+  line-height: 0;
+  cursor: pointer;
+}
+
+.gear-button[aria-expanded="true"] {
+  background: var(--fg);
+  color: var(--bg);
+}
+
+/* --- panel de ajustes (bottom sheet) --- */
+.settings-panel {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 20;
+}
+
+.settings-panel[hidden] {
+  display: none;
+}
+
+.settings-card {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0 auto;
+  max-width: 560px;
+  background: #1c2027;
+  border-radius: 20px 20px 0 0;
+  padding: 18px 18px calc(18px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.45);
+  max-height: 85dvh;
+  overflow-y: auto;
+}
+
+.settings-title {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.settings-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 6px;
+  line-height: 0;
+}
+
+.settings-card .lang-bar {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
 /* --- resultado --- */
 .result {
   flex: 1 1 auto;
