@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">FigurantesAlPoder</string>
+    <string name="title_activity_main">FigurantesAlPoder</string>
+    <string name="package_name">eus.itzulbira.figurantesalpoder</string>
+    <string name="custom_url_scheme">eus.itzulbira.figurantesalpoder</string>
+</resources>
