@@ -25,5 +25,7 @@ export const eu: Dictionary = {
     "Gailu honek ez du hizkuntza honetarako ahotsik: testua soilik.",
   colorFullHint:
     "Kolore horretako sei zirkuluak okupatuta badaude, berriro biratzen da (arau ofiziala).",
+  settingsTitle: "Ezarpenak",
+  settingsClose: "Itxi ezarpenak",
   voiceLang: "eu-ES",
 };

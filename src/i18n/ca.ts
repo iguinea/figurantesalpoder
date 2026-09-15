@@ -25,5 +25,7 @@ export const ca: Dictionary = {
     "Aquest dispositiu no té veu per a aquest idioma: només text.",
   colorFullHint:
     "Si els sis cercles d'aquest color ja estan ocupats, es torna a girar (regla oficial).",
+  settingsTitle: "Ajustos",
+  settingsClose: "Tanca els ajustos",
   voiceLang: "ca-ES",
 };
