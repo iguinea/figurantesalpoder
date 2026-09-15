@@ -63,7 +63,49 @@ beforeEach(() => {
   installStorage();
   document.body.replaceChildren();
   vi.useRealTimers();
+  delete (window as { AudioContext?: unknown }).AudioContext;
+  delete (window as { webkitAudioContext?: unknown }).webkitAudioContext;
+  delete (window as { matchMedia?: unknown }).matchMedia;
 });
+
+let mockAudio: {
+  createOscillator: ReturnType<typeof vi.fn>;
+  createGain: ReturnType<typeof vi.fn>;
+};
+
+/** AudioContext simulado para contar los tics disparados. */
+function installAudioMock(): void {
+  class MockOsc {
+    type = "triangle";
+    frequency = { value: 0 };
+    connect = vi.fn();
+    start = vi.fn();
+    stop = vi.fn();
+  }
+  class MockGain {
+    gain = {
+      setValueAtTime: vi.fn(),
+      exponentialRampToValueAtTime: vi.fn(),
+    };
+    connect = vi.fn();
+  }
+  mockAudio = {
+    createOscillator: vi.fn(() => new MockOsc()),
+    createGain: vi.fn(() => new MockGain()),
+  };
+  Object.defineProperty(window, "AudioContext", {
+    configurable: true,
+    writable: true,
+    value: vi.fn(() => ({
+      state: "running",
+      currentTime: 0,
+      destination: {},
+      resume: vi.fn().mockResolvedValue(undefined),
+      createOscillator: mockAudio.createOscillator,
+      createGain: mockAudio.createGain,
+    })),
+  });
+}
 
 describe("initApp", () => {
   it("renderiza el botón de girar y el selector de idiomas", () => {
@@ -147,6 +189,62 @@ describe("initApp", () => {
     expect(get(root, "result-limb").textContent).toBe("mano derecha");
     expect(get(root, "result-color").textContent).toBe("azul");
     expect(getButton(root, "spin").disabled).toBe(false);
+  });
+
+  it("el toggle de tic existe en los ajustes y por defecto está activado", () => {
+    const root = makeRoot();
+    initApp(root);
+
+    const tick = get(root, "tick-toggle") as HTMLInputElement;
+    expect(tick).toBeInstanceOf(HTMLInputElement);
+    expect(tick.checked).toBe(true);
+    expect(get(root, "tick-toggle-label").textContent).toBe(
+      DICTS.es.tickLabel,
+    );
+  });
+
+  it("la preferencia de tic persiste en el siguiente arranque", () => {
+    const root = makeRoot();
+    initApp(root);
+
+    const tick = get(root, "tick-toggle") as HTMLInputElement;
+    tick.checked = false;
+    tick.dispatchEvent(new Event("change"));
+    expect(storage.get("twister.tick")).toBe("off");
+
+    const root2 = makeRoot();
+    initApp(root2);
+    expect(
+      (get(root2, "tick-toggle") as HTMLInputElement).checked,
+    ).toBe(false);
+  });
+
+  it("girar con el tic activado no revienta aunque no haya AudioContext", () => {
+    vi.useFakeTimers();
+    const root = makeRoot();
+    const mockSpinner: Spinner = { spin: vi.fn(() => MOCK_RESULT) };
+    initApp(root, { spinner: mockSpinner });
+
+    expect(() => {
+      getButton(root, "spin").click();
+      vi.advanceTimersByTime(6000);
+    }).not.toThrow();
+    expect(mockSpinner.spin).toHaveBeenCalledTimes(1);
+    expect(get(root, "result-color").textContent).toBe("azul");
+  });
+
+  it("girar dispara tics a través de Web Audio con un AudioContext simulado", () => {
+    vi.useFakeTimers();
+    installAudioMock();
+    const root = makeRoot();
+    const mockSpinner: Spinner = { spin: vi.fn(() => MOCK_RESULT) };
+    initApp(root, { spinner: mockSpinner });
+
+    getButton(root, "spin").click();
+    vi.advanceTimersByTime(6000);
+
+    expect(mockAudio.createOscillator).toHaveBeenCalled();
+    expect(mockAudio.createOscillator.mock.calls.length).toBeGreaterThanOrEqual(10);
   });
 
   it("cambiar el idioma a eu traduce botón y resultado", () => {

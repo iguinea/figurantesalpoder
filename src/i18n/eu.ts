@@ -18,6 +18,7 @@ export const eu: Dictionary = {
   phraseTemplate: "{limb}: {color}",
   autoSeconds: "Biraketa automatikoa (segundo)",
   voiceLabel: "Ahotsa",
+  tickLabel: "Gurpilaren soinua",
   autoLabel: "Biraketa automatikoa",
   autoOn: "Biraketa automatikoa aktibatuta",
   autoOff: "Biraketa automatikoa desaktibatuta",

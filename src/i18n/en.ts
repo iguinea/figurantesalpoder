@@ -18,6 +18,7 @@ export const en: Dictionary = {
   phraseTemplate: "{limb}, {color}",
   autoSeconds: "Auto-spin (seconds)",
   voiceLabel: "Voice",
+  tickLabel: "Wheel tick sound",
   autoLabel: "Auto-spin",
   autoOn: "Auto-spin on",
   autoOff: "Auto-spin off",

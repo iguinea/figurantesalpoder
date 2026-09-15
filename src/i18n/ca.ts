@@ -18,6 +18,7 @@ export const ca: Dictionary = {
   phraseTemplate: "{limb}, {color}",
   autoSeconds: "Gir automàtic (segons)",
   voiceLabel: "Veu",
+  tickLabel: "So de la ruleta",
   autoLabel: "Gir automàtic",
   autoOn: "Gir automàtic activat",
   autoOff: "Gir automàtic desactivat",

@@ -9,6 +9,7 @@ import {
   type Spinner,
 } from "./engine/spinner.js";
 import { getDict, LANGS, type LangCode } from "./i18n/index.js";
+import { playTick } from "./sound.js";
 
 /** Colores del tapete (los mismos del icono/manifest). */
 const COLOR_HEX: Readonly<Record<SpinResult["color"], string>> = {
@@ -27,6 +28,7 @@ const DARK_TEXT: ReadonlySet<SpinResult["color"]> = new Set(["yellow", "green"])
 
 const LANG_STORAGE_KEY = "twister.lang";
 const SECONDS_STORAGE_KEY = "twister.autoSeconds";
+const TICK_STORAGE_KEY = "twister.tick";
 const AUTO_INTERVALS = [10, 15, 20, 30] as const;
 const DEFAULT_SECONDS = 15;
 
@@ -84,6 +86,8 @@ interface AppElements {
   settingsPanel: HTMLElement;
   settingsTitle: HTMLElement;
   settingsClose: HTMLButtonElement;
+  tickToggle: HTMLInputElement;
+  tickToggleLabel: HTMLElement;
   voiceToggle: HTMLInputElement;
   voiceToggleLabel: HTMLElement;
   voiceWarning: HTMLElement;
@@ -110,9 +114,11 @@ export function initApp(root: HTMLElement, options: AppOptions = {}): void {
   let timer: ReturnType<typeof setInterval> | null = null;
   let spinTimer: ReturnType<typeof setTimeout> | null = null;
   let animando = false;
+  let tickEnabled = loadTickEnabled();
 
   root.replaceChildren();
   const els = buildDom(root);
+  els.tickToggle.checked = tickEnabled;
   restoreSavedSeconds(els.autoSeconds);
 
   function loadLang(): LangCode {
@@ -124,12 +130,18 @@ export function initApp(root: HTMLElement, options: AppOptions = {}): void {
     return value === "es" || value === "ca" || value === "eu" || value === "en";
   }
 
+  /** El tic está activado salvo que el usuario lo apagase explícitamente. */
+  function loadTickEnabled(): boolean {
+    return getStorage()?.getItem(TICK_STORAGE_KEY) !== "off";
+  }
+
   function applyDict(): void {
     safeSet(getStorage(), LANG_STORAGE_KEY, lang);
     document.documentElement.lang = lang;
     document.title = dict.appName;
     setText(els.spinButton, dict.spin);
     setText(els.voiceToggleLabel, dict.voiceLabel);
+    setText(els.tickToggleLabel, dict.tickLabel);
     setText(els.autoToggleLabel, dict.autoLabel);
     els.settingsButton.setAttribute("aria-label", dict.settingsTitle);
     els.settingsClose.setAttribute("aria-label", dict.settingsClose);
@@ -211,6 +223,7 @@ export function initApp(root: HTMLElement, options: AppOptions = {}): void {
       setText(els.resultColor, dict.colors[color]);
       els.result.style.backgroundColor = COLOR_HEX[color];
       els.result.classList.toggle("dark-text", DARK_TEXT.has(color));
+      if (tickEnabled) playTick(); // un tic por casilla: la cadencia la marca el easing
       paso++;
       const progreso = paso / steps;
       spinTimer = setTimeout(
@@ -333,6 +346,11 @@ export function initApp(root: HTMLElement, options: AppOptions = {}): void {
   }
 
   els.voiceToggle.addEventListener("change", updateVoiceWarningVisibility);
+
+  els.tickToggle.addEventListener("change", () => {
+    tickEnabled = els.tickToggle.checked;
+    safeSet(getStorage(), TICK_STORAGE_KEY, tickEnabled ? "on" : "off");
+  });
 
   els.autoToggle.addEventListener("change", () => {
     els.autoState.textContent = els.autoToggle.checked ? dict.autoOn : dict.autoOff;
@@ -499,6 +517,18 @@ function buildDom(root: HTMLElement): AppElements {
   voiceWarning.hidden = true;
   voiceRow.append(voiceToggle, voiceToggleLabel);
 
+  const tickRow = document.createElement("div");
+  tickRow.className = "option-row";
+  const tickToggle = document.createElement("input");
+  tickToggle.type = "checkbox";
+  tickToggle.role = "switch";
+  tickToggle.dataset.testid = "tick-toggle";
+  tickToggle.id = "tick-toggle";
+  const tickToggleLabel = document.createElement("label");
+  tickToggleLabel.htmlFor = "tick-toggle";
+  tickToggleLabel.dataset.testid = "tick-toggle-label";
+  tickRow.append(tickToggle, tickToggleLabel);
+
   const autoRow = document.createElement("div");
   autoRow.className = "option-row";
   const autoToggle = document.createElement("input");
@@ -529,6 +559,7 @@ function buildDom(root: HTMLElement): AppElements {
     langBar,
     voiceRow,
     voiceWarning,
+    tickRow,
     autoRow,
     resultHint,
   );
@@ -545,6 +576,8 @@ function buildDom(root: HTMLElement): AppElements {
     settingsPanel,
     settingsTitle,
     settingsClose,
+    tickToggle,
+    tickToggleLabel,
     voiceToggle,
     voiceToggleLabel,
     voiceWarning,
